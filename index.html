@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Advanced Photo Maker</title>
+<style>
+    body { font-family: Arial; background: #2c2c2c; color: white; text-align: center; }
+    #controls { margin-bottom: 10px; }
+    button, input, select { margin: 3px; padding: 5px; }
+    canvas { border: 1px solid #ccc; background: transparent; }
+</style>
+</head>
+<body>
+
+<h1>Advanced Photo Maker</h1>
+<div id="controls">
+    <!-- Drawing controls -->
+    <label>Brush Color: <input type="color" id="brushColor" value="#ff0000"></label>
+    <label>Brush Size: <input type="number" id="brushSize" value="5" min="1" max="50"></label>
+    <button onclick="toggleDrawing()">Toggle Draw</button>
+
+    <!-- Add image -->
+    <input type="file" id="addImage" accept="image/*">
+
+    <!-- Add text -->
+    <input type="text" id="textInput" placeholder="Enter text">
+    <input type="color" id="textColor" value="#ffffff">
+    <input type="number" id="textSize" value="30">
+    <select id="textFont">
+        <option>Arial</option>
+        <option>Comic Sans MS</option>
+        <option>Courier New</option>
+        <option>Georgia</option>
+        <option>Times New Roman</option>
+    </select>
+    <button onclick="addText()">Add Text</button>
+
+    <!-- Undo/Redo -->
+    <button onclick="undo()">Undo</button>
+    <button onclick="redo()">Redo</button>
+
+    <!-- Save -->
+    <button onclick="savePNG()">Save PNG</button>
+</div>
+
+<!-- Canvas -->
+<canvas id="canvas" width="800" height="600"></canvas>
+
+<!-- Fabric.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+<script>
+const canvas = new fabric.Canvas('canvas', {
+    backgroundColor: 'transparent',
+    isDrawingMode: false
+});
+
+// Undo/Redo stacks
+let state = [], mods = 0;
+function saveHistory() {
+    mods = 0;
+    state.push(JSON.stringify(canvas));
+}
+canvas.on('object:added', saveHistory);
+canvas.on('object:modified', saveHistory);
+canvas.on('object:removed', saveHistory);
+
+function undo() {
+    if (mods < state.length - 1) {
+        canvas.clear();
+        canvas.loadFromJSON(state[state.length - 1 - ++mods]);
+    }
+}
+function redo() {
+    if (mods > 0) {
+        canvas.clear();
+        canvas.loadFromJSON(state[state.length - 1 - --mods]);
+    }
+}
+
+// Drawing mode
+document.getElementById('brushColor').oninput = e => canvas.freeDrawingBrush.color = e.target.value;
+document.getElementById('brushSize').oninput = e => canvas.freeDrawingBrush.width = parseInt(e.target.value, 10);
+canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+
+function toggleDrawing() {
+    canvas.isDrawingMode = !canvas.isDrawingMode;
+}
+
+// Add image
+document.getElementById('addImage').onchange = function(e) {
+    const reader = new FileReader();
+    reader.onload = function(f) {
+        fabric.Image.fromURL(f.target.result, function(img) {
+            img.scaleToWidth(200);
+            canvas.add(img).centerObject(img).setActiveObject(img);
+        });
+    };
+    reader.readAsDataURL(e.target.files[0]);
+};
+
+// Add text
+function addText() {
+    const textVal = document.getElementById('textInput').value;
+    if (!textVal) return;
+    const text = new fabric.Textbox(textVal, {
+        fill: document.getElementById('textColor').value,
+        fontSize: parseInt(document.getElementById('textSize').value),
+        fontFamily: document.getElementById('textFont').value,
+        left: 100,
+        top: 100
+    });
+    canvas.add(text).setActiveObject(text);
+}
+
+// Save PNG
+function savePNG() {
+    const link = document.createElement('a');
+    link.href = canvas.toDataURL({ format: 'png', quality: 1.0 });
+    link.download = 'photo.png';
+    link.click();
+}
+
+// Initial save state
+saveHistory();
+</script>
+</body>
+</html>
