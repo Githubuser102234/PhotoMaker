@@ -4,26 +4,40 @@
 <meta charset="UTF-8">
 <title>Advanced Photo Maker</title>
 <style>
-    body { font-family: Arial; background: #2c2c2c; color: white; text-align: center; }
-    #controls { margin-bottom: 10px; }
-    button, input, select { margin: 3px; padding: 5px; }
-    canvas { border: 1px solid #ccc; background: transparent; }
+    body { font-family: Arial; background: #2c2c2c; color: white; margin: 0; padding: 0; }
+    #toolbar {
+        display: flex; flex-wrap: wrap; justify-content: center;
+        background: #1a1a1a; padding: 5px;
+    }
+    #toolbar > * {
+        margin: 4px; padding: 5px;
+        font-size: 14px; border-radius: 4px; border: none;
+    }
+    button, input, select {
+        background: #444; color: white;
+    }
+    button:hover { background: #666; cursor: pointer; }
+    canvas { border: 1px solid #ccc; background: transparent; max-width: 100%; height: auto; }
+    @media (max-width: 600px) {
+        #toolbar { flex-direction: column; align-items: center; }
+    }
 </style>
 </head>
 <body>
 
-<h1>Advanced Photo Maker</h1>
-<div id="controls">
+<h1 style="text-align:center;">Advanced Photo Maker</h1>
+
+<div id="toolbar">
     <!-- Drawing controls -->
-    <label>Brush Color: <input type="color" id="brushColor" value="#ff0000"></label>
-    <label>Brush Size: <input type="number" id="brushSize" value="5" min="1" max="50"></label>
-    <button onclick="toggleDrawing()">Toggle Draw</button>
+    <label style="color:white;">Brush: <input type="color" id="brushColor" value="#ff0000"></label>
+    <input type="number" id="brushSize" value="5" min="1" max="50">
+    <button onclick="toggleDrawing()">✏️ Draw</button>
 
     <!-- Add image -->
     <input type="file" id="addImage" accept="image/*">
 
     <!-- Add text -->
-    <input type="text" id="textInput" placeholder="Enter text">
+    <input type="text" id="textInput" placeholder="Text">
     <input type="color" id="textColor" value="#ffffff">
     <input type="number" id="textSize" value="30">
     <select id="textFont">
@@ -33,51 +47,90 @@
         <option>Georgia</option>
         <option>Times New Roman</option>
     </select>
-    <button onclick="addText()">Add Text</button>
+    <button onclick="addText()">🔤 Text</button>
+
+    <!-- Shapes -->
+    <select id="shapeSelect">
+        <option value="">Shape...</option>
+        <option value="rect">Rectangle</option>
+        <option value="circle">Circle</option>
+        <option value="triangle">Triangle</option>
+    </select>
+    <button onclick="addShape()">⬜ Shape</button>
+
+    <!-- Stickers -->
+    <select id="stickerSelect">
+        <option value="">Sticker...</option>
+        <option value="https://i.imgur.com/4AiXzf8.png">Star</option>
+        <option value="https://i.imgur.com/3X3QZpM.png">Heart</option>
+        <option value="https://i.imgur.com/Oj1N0TQ.png">Smiley</option>
+    </select>
+    <button onclick="addSticker()">💖 Sticker</button>
+
+    <!-- Filters -->
+    <select id="filterSelect">
+        <option value="">Filter...</option>
+        <option value="grayscale">Grayscale</option>
+        <option value="sepia">Sepia</option>
+        <option value="invert">Invert</option>
+        <option value="brightness">Brightness +0.2</option>
+    </select>
+    <button onclick="applyFilter()">🎨 Filter</button>
+
+    <!-- Layer management -->
+    <button onclick="bringForward()">⬆️ Front</button>
+    <button onclick="sendBackward()">⬇️ Back</button>
 
     <!-- Undo/Redo -->
-    <button onclick="undo()">Undo</button>
-    <button onclick="redo()">Redo</button>
+    <button onclick="undo()">↩️ Undo</button>
+    <button onclick="redo()">↪️ Redo</button>
 
     <!-- Save -->
-    <button onclick="savePNG()">Save PNG</button>
+    <button onclick="savePNG()">💾 Save</button>
 </div>
 
 <!-- Canvas -->
-<canvas id="canvas" width="800" height="600"></canvas>
+<div style="text-align:center;">
+    <canvas id="canvas" width="800" height="600"></canvas>
+</div>
 
 <!-- Fabric.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
 <script>
-const canvas = new fabric.Canvas('canvas', {
-    backgroundColor: 'transparent',
-    isDrawingMode: false
-});
+const canvas = new fabric.Canvas('canvas', { backgroundColor: 'transparent', isDrawingMode: false });
 
-// Undo/Redo stacks
-let state = [], mods = 0;
-function saveHistory() {
-    mods = 0;
+// History stack for Undo/Redo
+let state = [];
+let currentStateIndex = -1;
+
+function saveState() {
+    if (currentStateIndex < state.length - 1) {
+        state = state.slice(0, currentStateIndex + 1);
+    }
     state.push(JSON.stringify(canvas));
+    currentStateIndex++;
 }
-canvas.on('object:added', saveHistory);
-canvas.on('object:modified', saveHistory);
-canvas.on('object:removed', saveHistory);
 
 function undo() {
-    if (mods < state.length - 1) {
-        canvas.clear();
-        canvas.loadFromJSON(state[state.length - 1 - ++mods]);
-    }
-}
-function redo() {
-    if (mods > 0) {
-        canvas.clear();
-        canvas.loadFromJSON(state[state.length - 1 - --mods]);
+    if (currentStateIndex > 0) {
+        currentStateIndex--;
+        canvas.loadFromJSON(state[currentStateIndex], () => canvas.renderAll());
     }
 }
 
-// Drawing mode
+function redo() {
+    if (currentStateIndex < state.length - 1) {
+        currentStateIndex++;
+        canvas.loadFromJSON(state[currentStateIndex], () => canvas.renderAll());
+    }
+}
+
+// Capture changes for history
+canvas.on('object:added', saveState);
+canvas.on('object:modified', saveState);
+canvas.on('object:removed', saveState);
+
+// Drawing tools
 document.getElementById('brushColor').oninput = e => canvas.freeDrawingBrush.color = e.target.value;
 document.getElementById('brushSize').oninput = e => canvas.freeDrawingBrush.width = parseInt(e.target.value, 10);
 canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
@@ -112,6 +165,65 @@ function addText() {
     canvas.add(text).setActiveObject(text);
 }
 
+// Add shapes
+function addShape() {
+    const type = document.getElementById('shapeSelect').value;
+    let shape;
+    if (type === 'rect') {
+        shape = new fabric.Rect({ width: 100, height: 60, fill: 'red', left: 150, top: 150 });
+    } else if (type === 'circle') {
+        shape = new fabric.Circle({ radius: 50, fill: 'green', left: 150, top: 150 });
+    } else if (type === 'triangle') {
+        shape = new fabric.Triangle({ width: 100, height: 100, fill: 'blue', left: 150, top: 150 });
+    }
+    if (shape) canvas.add(shape).setActiveObject(shape);
+}
+
+// Add stickers
+function addSticker() {
+    const url = document.getElementById('stickerSelect').value;
+    if (!url) return;
+    fabric.Image.fromURL(url, function(img) {
+        img.scaleToWidth(100);
+        canvas.add(img).centerObject(img).setActiveObject(img);
+    });
+}
+
+// Filters
+function applyFilter() {
+    const filter = document.getElementById('filterSelect').value;
+    const obj = canvas.getActiveObject();
+    if (!obj || obj.type !== 'image') return alert('Select an image to apply filter.');
+
+    switch(filter) {
+        case 'grayscale':
+            obj.filters.push(new fabric.Image.filters.Grayscale());
+            break;
+        case 'sepia':
+            obj.filters.push(new fabric.Image.filters.Sepia());
+            break;
+        case 'invert':
+            obj.filters.push(new fabric.Image.filters.Invert());
+            break;
+        case 'brightness':
+            obj.filters.push(new fabric.Image.filters.Brightness({ brightness: 0.2 }));
+            break;
+    }
+    obj.applyFilters();
+    canvas.renderAll();
+}
+
+// Layer management
+function bringForward() {
+    const obj = canvas.getActiveObject();
+    if (obj) canvas.bringForward(obj);
+}
+
+function sendBackward() {
+    const obj = canvas.getActiveObject();
+    if (obj) canvas.sendBackwards(obj);
+}
+
 // Save PNG
 function savePNG() {
     const link = document.createElement('a');
@@ -120,8 +232,8 @@ function savePNG() {
     link.click();
 }
 
-// Initial save state
-saveHistory();
+// Initialize state
+saveState();
 </script>
 </body>
 </html>
