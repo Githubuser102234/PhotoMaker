@@ -75,6 +75,38 @@
         text-decoration: none;
         display: block;
     }
+    #my-projects-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 20px;
+    }
+    #my-projects-header h1 {
+        margin: 0;
+    }
+    #my-projects-header button {
+        padding: 10px;
+    }
+    #projects-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    @media (max-width: 600px) {
+        #toolbar { flex-direction: column; align-items: center; }
+        .project-card {
+            width: 90%;
+            display: block;
+            margin: 10px auto;
+        }
+        #my-projects-header {
+            flex-direction: column;
+        }
+        #my-projects-header h1 {
+            margin-bottom: 10px;
+        }
+    }
 </style>
 </head>
 <body>
@@ -89,9 +121,14 @@
 </div>
 
 <div class="projects-page">
-    <h1 style="text-align:center;">My Projects</h1>
-    <div id="projects-list"></div>
-    <button onclick="createNewProject()" style="margin-top: 20px;">➕ New Project</button>
+    <div id="my-projects-header">
+        <h1>My Projects</h1>
+        <button onclick="handleLogout()">🚪 Log Out</button>
+    </div>
+    <div id="projects-container">
+        <button onclick="createNewProject()" style="width: 200px; height: 150px; font-size: 50px; margin: 10px;">➕</button>
+        <div id="projects-list"></div>
+    </div>
 </div>
 
 <div class="photo-maker-app">
@@ -223,7 +260,7 @@
         }
     }
 
-    function showProjectsPage() {
+    window.showProjectsPage = function() {
         document.querySelector('.projects-page').style.display = 'block';
         document.querySelector('.photo-maker-app').style.display = 'none';
         fetchUserProjects();
@@ -461,7 +498,6 @@
             if (obj) canvas.sendBackwards(obj);
         };
     }
-
 </script>
 </body>
 </html>
