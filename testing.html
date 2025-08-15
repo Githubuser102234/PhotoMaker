@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Advanced Photo Maker</title>
+<style>
+    body { font-family: Arial; background: #2c2c2c; color: white; margin: 0; padding: 0; }
+    #toolbar {
+        display: flex; flex-wrap: wrap; justify-content: center;
+        background: #1a1a1a; padding: 5px;
+    }
+    #toolbar > * {
+        margin: 4px; padding: 5px;
+        font-size: 14px; border-radius: 4px; border: none;
+    }
+    button, input, select {
+        background: #444; color: white;
+    }
+    button:hover { background: #666; cursor: pointer; }
+    canvas { border: 1px solid #ccc; background: transparent; max-width: 100%; height: auto; }
+    #auth-container {
+        display: none; /* Hidden by default */
+        text-align: center;
+        padding: 20px;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #1a1a1a;
+        border-radius: 8px;
+        z-index: 100;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+    }
+    #auth-container input {
+        display: block;
+        width: 250px;
+        margin: 10px auto;
+        padding: 10px;
+    }
+    #auth-container button {
+        margin: 5px;
+        padding: 10px 20px;
+    }
+    #auth-message {
+        color: red;
+        margin-top: 10px;
+    }
+    .photo-maker-app {
+        display: none; /* Hidden by default */
+    }
+    @media (max-width: 600px) {
+        #toolbar { flex-direction: column; align-items: center; }
+    }
+</style>
+</head>
+<body>
+
+<div id="auth-container">
+    <h2>Login / Sign Up</h2>
+    <input type="email" id="auth-email" placeholder="Email">
+    <input type="password" id="auth-password" placeholder="Password">
+    <button onclick="handleLogin()">Login</button>
+    <button onclick="handleSignup()">Sign Up</button>
+    <div id="auth-message"></div>
+</div>
+
+<div class="photo-maker-app">
+    <h1 style="text-align:center;">Advanced Photo Maker</h1>
+    <div id="toolbar">
+        <label style="color:white;">Brush: <input type="color" id="brushColor" value="#ff0000"></label>
+        <input type="number" id="brushSize" value="5" min="1" max="50">
+        <button onclick="toggleDrawing()">✏️ Draw</button>
+
+        <input type="file" id="addImage" accept="image/*">
+
+        <input type="text" id="textInput" placeholder="Text">
+        <input type="color" id="textColor" value="#ffffff">
+        <input type="number" id="textSize" value="30">
+        <select id="textFont">
+            <option>Arial</option>
+            <option>Comic Sans MS</option>
+            <option>Courier New</option>
+            <option>Georgia</option>
+            <option>Times New Roman</option>
+        </select>
+        <button onclick="addText()">🔤 Text</button>
+
+        <select id="shapeSelect">
+            <option value="">Shape...</option>
+            <option value="rect">Rectangle</option>
+            <option value="circle">Circle</option>
+            <option value="triangle">Triangle</option>
+        </select>
+        <button onclick="addShape()">⬜ Shape</button>
+
+        <select id="stickerSelect">
+            <option value="">Sticker...</option>
+            <option value="https://i.imgur.com/4AiXzf8.png">Star</option>
+            <option value="https://i.imgur.com/3X3QZpM.png">Heart</option>
+            <option value="https://i.imgur.com/Oj1N0TQ.png">Smiley</option>
+        </select>
+        <button onclick="addSticker()">💖 Sticker</button>
+
+        <select id="filterSelect">
+            <option value="">Filter...</option>
+            <option value="grayscale">Grayscale</option>
+            <option value="sepia">Sepia</option>
+            <option value="invert">Invert</option>
+            <option value="brightness">Brightness +0.2</option>
+        </select>
+        <button onclick="applyFilter()">🎨 Filter</button>
+
+        <button onclick="bringForward()">⬆️ Front</button>
+        <button onclick="sendBackward()">⬇️ Back</button>
+
+        <button onclick="undo()">↩️ Undo</button>
+        <button onclick="redo()">↪️ Redo</button>
+
+        <button onclick="savePNG()">💾 Save</button>
+
+        <button onclick="handleLogout()">🚪 Logout</button>
+    </div>
+    <div style="text-align:center;">
+        <canvas id="canvas" width="800" height="600"></canvas>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+
+<script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+    import { 
+        getAuth, 
+        createUserWithEmailAndPassword, 
+        signInWithEmailAndPassword, 
+        onAuthStateChanged,
+        signOut
+    } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyD77yJuc8wH-gbCwu5EkaFfoxTCQoTfnjY",
+      authDomain: "photomaker-16a56.firebaseapp.com",
+      projectId: "photomaker-16a56",
+      storageBucket: "photomaker-16a56.firebasestorage.app",
+      messagingSenderId: "277526284183",
+      appId: "1:277526284183:web:590add4650c0a5b374a6d2"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    let canvas;
+
+    function setupAuthUI() {
+        onAuthStateChanged(auth, (user) => {
+            const authContainer = document.getElementById('auth-container');
+            const photoMakerApp = document.querySelector('.photo-maker-app');
+            if (user) {
+                // User is logged in
+                authContainer.style.display = 'none';
+                photoMakerApp.style.display = 'block';
+                document.getElementById('auth-message').textContent = '';
+                // Initialize canvas only after a user logs in
+                if (!canvas) {
+                    canvas = new fabric.Canvas('canvas', { backgroundColor: 'transparent', isDrawingMode: false });
+                    initializeCanvasFunctions();
+                }
+            } else {
+                // User is logged out
+                authContainer.style.display = 'block';
+                photoMakerApp.style.display = 'none';
+                if (canvas) {
+                    canvas.dispose(); // Clean up canvas when user logs out
+                    canvas = null;
+                }
+            }
+        });
+    }
+
+    window.handleLogin = async function() {
+        const email = document.getElementById('auth-email').value;
+        const password = document.getElementById('auth-password').value;
+        const messageDiv = document.getElementById('auth-message');
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+        } catch (error) {
+            messageDiv.textContent = `Login failed: ${error.message}`;
+        }
+    }
+
+    window.handleSignup = async function() {
+        const email = document.getElementById('auth-email').value;
+        const password = document.getElementById('auth-password').value;
+        const messageDiv = document.getElementById('auth-message');
+        try {
+            await createUserWithEmailAndPassword(auth, email, password);
+        } catch (error) {
+            messageDiv.textContent = `Sign Up failed: ${error.message}`;
+        }
+    }
+
+    window.handleLogout = async function() {
+        await signOut(auth);
+    }
+
+    // Call initFirebase when the script loads
+    document.addEventListener('DOMContentLoaded', setupAuthUI);
+
+    // All the existing Fabric.js functions are now wrapped in a function to be called after login
+    function initializeCanvasFunctions() {
+        // History stack for Undo/Redo
+        let state = [];
+        let currentStateIndex = -1;
+
+        function saveState() {
+            if (currentStateIndex < state.length - 1) {
+                state = state.slice(0, currentStateIndex + 1);
+            }
+            state.push(JSON.stringify(canvas));
+            currentStateIndex++;
+        }
+
+        window.undo = function() {
+            if (currentStateIndex > 0) {
+                currentStateIndex--;
+                canvas.loadFromJSON(state[currentStateIndex], () => canvas.renderAll());
+            }
+        };
+
+        window.redo = function() {
+            if (currentStateIndex < state.length - 1) {
+                currentStateIndex++;
+                canvas.loadFromJSON(state[currentStateIndex], () => canvas.renderAll());
+            }
+        };
+
+        // Capture changes for history
+        canvas.on('object:added', saveState);
+        canvas.on('object:modified', saveState);
+        canvas.on('object:removed', saveState);
+
+        // Drawing tools
+        document.getElementById('brushColor').oninput = e => canvas.freeDrawingBrush.color = e.target.value;
+        document.getElementById('brushSize').oninput = e => canvas.freeDrawingBrush.width = parseInt(e.target.value, 10);
+        canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+
+        window.toggleDrawing = function() {
+            canvas.isDrawingMode = !canvas.isDrawingMode;
+        };
+
+        // Add image
+        document.getElementById('addImage').onchange = function(e) {
+            const reader = new FileReader();
+            reader.onload = function(f) {
+                fabric.Image.fromURL(f.target.result, function(img) {
+                    img.scaleToWidth(200);
+                    canvas.add(img).centerObject(img).setActiveObject(img);
+                });
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        };
+
+        // Add text
+        window.addText = function() {
+            const textVal = document.getElementById('textInput').value;
+            if (!textVal) return;
+            const text = new fabric.Textbox(textVal, {
+                fill: document.getElementById('textColor').value,
+                fontSize: parseInt(document.getElementById('textSize').value),
+                fontFamily: document.getElementById('textFont').value,
+                left: 100,
+                top: 100
+            });
+            canvas.add(text).setActiveObject(text);
+        };
+
+        // Add shapes
+        window.addShape = function() {
+            const type = document.getElementById('shapeSelect').value;
+            let shape;
+            if (type === 'rect') {
+                shape = new fabric.Rect({ width: 100, height: 60, fill: 'red', left: 150, top: 150 });
+            } else if (type === 'circle') {
+                shape = new fabric.Circle({ radius: 50, fill: 'green', left: 150, top: 150 });
+            } else if (type === 'triangle') {
+                shape = new fabric.Triangle({ width: 100, height: 100, fill: 'blue', left: 150, top: 150 });
+            }
+            if (shape) canvas.add(shape).setActiveObject(shape);
+        };
+
+        // Add stickers
+        window.addSticker = function() {
+            const url = document.getElementById('stickerSelect').value;
+            if (!url) return;
+            fabric.Image.fromURL(url, function(img) {
+                img.scaleToWidth(100);
+                canvas.add(img).centerObject(img).setActiveObject(img);
+            });
+        };
+
+        // Filters
+        window.applyFilter = function() {
+            const filter = document.getElementById('filterSelect').value;
+            const obj = canvas.getActiveObject();
+            if (!obj || obj.type !== 'image') return alert('Select an image to apply filter.');
+
+            switch(filter) {
+                case 'grayscale':
+                    obj.filters.push(new fabric.Image.filters.Grayscale());
+                    break;
+                case 'sepia':
+                    obj.filters.push(new fabric.Image.filters.Sepia());
+                    break;
+                case 'invert':
+                    obj.filters.push(new fabric.Image.filters.Invert());
+                    break;
+                case 'brightness':
+                    obj.filters.push(new fabric.Image.filters.Brightness({ brightness: 0.2 }));
+                    break;
+            }
+            obj.applyFilters();
+            canvas.renderAll();
+        };
+
+        // Layer management
+        window.bringForward = function() {
+            const obj = canvas.getActiveObject();
+            if (obj) canvas.bringForward(obj);
+        };
+
+        window.sendBackward = function() {
+            const obj = canvas.getActiveObject();
+            if (obj) canvas.sendBackwards(obj);
+        };
+
+        // Save PNG
+        window.savePNG = function() {
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL({ format: 'png', quality: 1.0 });
+            link.download = 'photo.png';
+            link.click();
+        };
+    }
+</script>
+</body>
+</html>
