@@ -70,6 +70,13 @@
         background: #e74c3c;
         padding: 5px;
     }
+    .project-card .delete-btn {
+        background: #e74c3c;
+    }
+    .project-card .rename-btn {
+        background: #3498db;
+        right: 40px;
+    }
     .project-card a {
         color: white;
         text-decoration: none;
@@ -132,7 +139,7 @@
 </div>
 
 <div class="photo-maker-app">
-    <h1 style="text-align:center;">Advanced Photo Maker</h1>
+    <h1 id="project-name-display" style="text-align:center;">Advanced Photo Maker</h1>
     <div id="toolbar">
         <label style="color:white;">Brush: <input type="color" id="brushColor" value="#ff0000"></label>
         <input type="number" id="brushSize" value="5" min="1" max="50">
@@ -175,7 +182,9 @@
         <button onclick="sendBackward()">⬇️ Back</button>
         <button onclick="undo()">↩️ Undo</button>
         <button onclick="redo()">↪️ Redo</button>
+        <button onclick="deleteObject()">🗑️ Delete</button>
         <button onclick="saveProject()">💾 Save to Projects</button>
+        <button onclick="savePhoto()">🖼️ Save Photo</button>
         <button onclick="handleLogout()">🚪 Logout</button>
         <button onclick="showProjectsPage()">🏠 Home</button>
     </div>
@@ -204,7 +213,8 @@
         doc,
         deleteDoc,
         getDoc,
-        setDoc
+        setDoc,
+        updateDoc
     } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
     
     // Your web app's Firebase configuration
@@ -212,7 +222,7 @@
       apiKey: "AIzaSyD77yJuc8wH-gbCwu5EkaFfoxTCQoTfnjY",
       authDomain: "photomaker-16a56.firebaseapp.com",
       projectId: "photomaker-16a56",
-      storageBucket: "photomaker-16a56.firebasestorage.app",
+      storageBucket: "photomaker-16a56.firebase-d8205.appspot.com",
       messagingSenderId: "277526284183",
       appId: "1:277526284183:web:590add4650c0a5b374a6d2"
     };
@@ -286,10 +296,11 @@
             const projectCard = document.createElement('div');
             projectCard.className = 'project-card';
             projectCard.innerHTML = `
+                <button class="rename-btn" onclick="renameProject('${doc.id}', '${project.name}')">✏️</button>
                 <a href="/PhotoMaker/?projectId=${doc.id}">
                     <h3>${project.name}</h3>
                 </a>
-                <button onclick="deleteProject('${doc.id}')">🗑️</button>
+                <button class="delete-btn" onclick="deleteProject('${doc.id}')">🗑️</button>
             `;
             projectsList.appendChild(projectCard);
         });
@@ -312,14 +323,21 @@
         }
     }
 
+    window.renameProject = async function(projectId, oldName) {
+        const newName = prompt("Enter new project name:", oldName);
+        if (newName && newName.trim() !== "" && newName !== oldName) {
+            const projectRef = doc(db, "projects", projectId);
+            await updateDoc(projectRef, { name: newName });
+            fetchUserProjects();
+        }
+    }
+
     window.saveProject = async function() {
         if (!currentUser || !currentProjectId) return alert("Please create or open a project first.");
-        const projectName = prompt("Enter project name:", "New Project");
-        if (!projectName) return;
         
         const projectRef = doc(db, "projects", currentProjectId);
         await setDoc(projectRef, {
-            name: projectName,
+            name: document.getElementById('project-name-display').textContent,
             ownerId: currentUser.uid,
             data: JSON.stringify(canvas)
         });
@@ -333,6 +351,7 @@
 
         if (docSnap.exists() && docSnap.data().ownerId === currentUser.uid) {
             const projectData = docSnap.data().data;
+            document.getElementById('project-name-display').textContent = docSnap.data().name;
             if (projectData) {
                 if (!canvas) {
                     canvas = new fabric.Canvas('canvas', { backgroundColor: 'transparent', isDrawingMode: false });
@@ -404,6 +423,28 @@
                 currentStateIndex++;
                 canvas.loadFromJSON(state[currentStateIndex], () => canvas.renderAll());
             }
+        };
+
+        window.deleteObject = function() {
+            const activeObjects = canvas.getActiveObjects();
+            if (activeObjects.length > 0) {
+                activeObjects.forEach(obj => canvas.remove(obj));
+                canvas.discardActiveObject().renderAll();
+                saveState();
+            }
+        };
+
+        window.savePhoto = function() {
+            const dataURL = canvas.toDataURL({
+                format: 'png',
+                quality: 1.0
+            });
+            const link = document.createElement('a');
+            link.href = dataURL;
+            link.download = document.getElementById('project-name-display').textContent + '.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         };
 
         canvas.on('object:added', saveState);
