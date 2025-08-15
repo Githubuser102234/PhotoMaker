@@ -18,222 +18,485 @@
     }
     button:hover { background: #666; cursor: pointer; }
     canvas { border: 1px solid #ccc; background: transparent; max-width: 100%; height: auto; }
+    #auth-container {
+        display: none; /* Hidden by default */
+        text-align: center;
+        padding: 20px;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #1a1a1a;
+        border-radius: 8px;
+        z-index: 100;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+    }
+    #auth-container input {
+        display: block;
+        width: 250px;
+        margin: 10px auto;
+        padding: 10px;
+    }
+    #auth-container button {
+        margin: 5px;
+        padding: 10px 20px;
+    }
+    #auth-message {
+        color: red;
+        margin-top: 10px;
+    }
+    .photo-maker-app {
+        display: none; /* Hidden by default */
+    }
+    .projects-page {
+        display: none; /* Hidden by default */
+        text-align: center;
+        padding: 20px;
+    }
+    .project-card {
+        background: #333;
+        padding: 15px;
+        margin: 10px;
+        border-radius: 8px;
+        display: inline-block;
+        width: 200px;
+        text-align: left;
+        position: relative;
+    }
+    .project-card button {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: #e74c3c;
+        padding: 5px;
+    }
+    .project-card a {
+        color: white;
+        text-decoration: none;
+        display: block;
+    }
+    #my-projects-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 20px;
+    }
+    #my-projects-header h1 {
+        margin: 0;
+    }
+    #my-projects-header button {
+        padding: 10px;
+    }
+    #projects-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
     @media (max-width: 600px) {
         #toolbar { flex-direction: column; align-items: center; }
+        .project-card {
+            width: 90%;
+            display: block;
+            margin: 10px auto;
+        }
+        #my-projects-header {
+            flex-direction: column;
+        }
+        #my-projects-header h1 {
+            margin-bottom: 10px;
+        }
     }
 </style>
 </head>
 <body>
 
-<h1 style="text-align:center;">Advanced Photo Maker</h1>
-
-<div id="toolbar">
-    <!-- Drawing controls -->
-    <label style="color:white;">Brush: <input type="color" id="brushColor" value="#ff0000"></label>
-    <input type="number" id="brushSize" value="5" min="1" max="50">
-    <button onclick="toggleDrawing()">✏️ Draw</button>
-
-    <!-- Add image -->
-    <input type="file" id="addImage" accept="image/*">
-
-    <!-- Add text -->
-    <input type="text" id="textInput" placeholder="Text">
-    <input type="color" id="textColor" value="#ffffff">
-    <input type="number" id="textSize" value="30">
-    <select id="textFont">
-        <option>Arial</option>
-        <option>Comic Sans MS</option>
-        <option>Courier New</option>
-        <option>Georgia</option>
-        <option>Times New Roman</option>
-    </select>
-    <button onclick="addText()">🔤 Text</button>
-
-    <!-- Shapes -->
-    <select id="shapeSelect">
-        <option value="">Shape...</option>
-        <option value="rect">Rectangle</option>
-        <option value="circle">Circle</option>
-        <option value="triangle">Triangle</option>
-    </select>
-    <button onclick="addShape()">⬜ Shape</button>
-
-    <!-- Stickers -->
-    <select id="stickerSelect">
-        <option value="">Sticker...</option>
-        <option value="https://i.imgur.com/4AiXzf8.png">Star</option>
-        <option value="https://i.imgur.com/3X3QZpM.png">Heart</option>
-        <option value="https://i.imgur.com/Oj1N0TQ.png">Smiley</option>
-    </select>
-    <button onclick="addSticker()">💖 Sticker</button>
-
-    <!-- Filters -->
-    <select id="filterSelect">
-        <option value="">Filter...</option>
-        <option value="grayscale">Grayscale</option>
-        <option value="sepia">Sepia</option>
-        <option value="invert">Invert</option>
-        <option value="brightness">Brightness +0.2</option>
-    </select>
-    <button onclick="applyFilter()">🎨 Filter</button>
-
-    <!-- Layer management -->
-    <button onclick="bringForward()">⬆️ Front</button>
-    <button onclick="sendBackward()">⬇️ Back</button>
-
-    <!-- Undo/Redo -->
-    <button onclick="undo()">↩️ Undo</button>
-    <button onclick="redo()">↪️ Redo</button>
-
-    <!-- Save -->
-    <button onclick="savePNG()">💾 Save</button>
+<div id="auth-container">
+    <h2>Login / Sign Up</h2>
+    <input type="email" id="auth-email" placeholder="Email">
+    <input type="password" id="auth-password" placeholder="Password">
+    <button onclick="handleLogin()">Login</button>
+    <button onclick="handleSignup()">Sign Up</button>
+    <div id="auth-message"></div>
 </div>
 
-<!-- Canvas -->
-<div style="text-align:center;">
-    <canvas id="canvas" width="800" height="600"></canvas>
+<div class="projects-page">
+    <div id="my-projects-header">
+        <h1>My Projects</h1>
+        <button onclick="handleLogout()">🚪 Log Out</button>
+    </div>
+    <div id="projects-container">
+        <button onclick="createNewProject()" style="width: 200px; height: 150px; font-size: 50px; margin: 10px;">➕</button>
+        <div id="projects-list"></div>
+    </div>
 </div>
 
-<!-- Fabric.js -->
+<div class="photo-maker-app">
+    <h1 style="text-align:center;">Advanced Photo Maker</h1>
+    <div id="toolbar">
+        <label style="color:white;">Brush: <input type="color" id="brushColor" value="#ff0000"></label>
+        <input type="number" id="brushSize" value="5" min="1" max="50">
+        <button onclick="toggleDrawing()">✏️ Draw</button>
+        <input type="file" id="addImage" accept="image/*">
+        <input type="text" id="textInput" placeholder="Text">
+        <input type="color" id="textColor" value="#ffffff">
+        <input type="number" id="textSize" value="30">
+        <select id="textFont">
+            <option>Arial</option>
+            <option>Comic Sans MS</option>
+            <option>Courier New</option>
+            <option>Georgia</option>
+            <option>Times New Roman</option>
+        </select>
+        <button onclick="addText()">🔤 Text</button>
+        <select id="shapeSelect">
+            <option value="">Shape...</option>
+            <option value="rect">Rectangle</option>
+            <option value="circle">Circle</option>
+            <option value="triangle">Triangle</option>
+        </select>
+        <button onclick="addShape()">⬜ Shape</button>
+        <select id="stickerSelect">
+            <option value="">Sticker...</option>
+            <option value="https://i.imgur.com/4AiXzf8.png">Star</option>
+            <option value="https://i.imgur.com/3X3QZpM.png">Heart</option>
+            <option value="https://i.imgur.com/Oj1N0TQ.png">Smiley</option>
+        </select>
+        <button onclick="addSticker()">💖 Sticker</button>
+        <select id="filterSelect">
+            <option value="">Filter...</option>
+            <option value="grayscale">Grayscale</option>
+            <option value="sepia">Sepia</option>
+            <option value="invert">Invert</option>
+            <option value="brightness">Brightness +0.2</option>
+        </select>
+        <button onclick="applyFilter()">🎨 Filter</button>
+        <button onclick="bringForward()">⬆️ Front</button>
+        <button onclick="sendBackward()">⬇️ Back</button>
+        <button onclick="undo()">↩️ Undo</button>
+        <button onclick="redo()">↪️ Redo</button>
+        <button onclick="saveProject()">💾 Save to Projects</button>
+        <button onclick="handleLogout()">🚪 Logout</button>
+        <button onclick="showProjectsPage()">🏠 Home</button>
+    </div>
+    <div style="text-align:center;">
+        <canvas id="canvas" width="800" height="600"></canvas>
+    </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
-<script>
-const canvas = new fabric.Canvas('canvas', { backgroundColor: 'transparent', isDrawingMode: false });
-
-// History stack for Undo/Redo
-let state = [];
-let currentStateIndex = -1;
-
-function saveState() {
-    if (currentStateIndex < state.length - 1) {
-        state = state.slice(0, currentStateIndex + 1);
-    }
-    state.push(JSON.stringify(canvas));
-    currentStateIndex++;
-}
-
-function undo() {
-    if (currentStateIndex > 0) {
-        currentStateIndex--;
-        canvas.loadFromJSON(state[currentStateIndex], () => canvas.renderAll());
-    }
-}
-
-function redo() {
-    if (currentStateIndex < state.length - 1) {
-        currentStateIndex++;
-        canvas.loadFromJSON(state[currentStateIndex], () => canvas.renderAll());
-    }
-}
-
-// Capture changes for history
-canvas.on('object:added', saveState);
-canvas.on('object:modified', saveState);
-canvas.on('object:removed', saveState);
-
-// Drawing tools
-document.getElementById('brushColor').oninput = e => canvas.freeDrawingBrush.color = e.target.value;
-document.getElementById('brushSize').oninput = e => canvas.freeDrawingBrush.width = parseInt(e.target.value, 10);
-canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
-
-function toggleDrawing() {
-    canvas.isDrawingMode = !canvas.isDrawingMode;
-}
-
-// Add image
-document.getElementById('addImage').onchange = function(e) {
-    const reader = new FileReader();
-    reader.onload = function(f) {
-        fabric.Image.fromURL(f.target.result, function(img) {
-            img.scaleToWidth(200);
-            canvas.add(img).centerObject(img).setActiveObject(img);
-        });
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+    import { 
+        getAuth, 
+        createUserWithEmailAndPassword, 
+        signInWithEmailAndPassword, 
+        onAuthStateChanged,
+        signOut
+    } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+    import { 
+        getFirestore,
+        collection,
+        query,
+        where,
+        getDocs,
+        addDoc,
+        doc,
+        deleteDoc,
+        getDoc,
+        setDoc
+    } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+    
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyD77yJuc8wH-gbCwu5EkaFfoxTCQoTfnjY",
+      authDomain: "photomaker-16a56.firebaseapp.com",
+      projectId: "photomaker-16a56",
+      storageBucket: "photomaker-16a56.firebasestorage.app",
+      messagingSenderId: "277526284183",
+      appId: "1:277526284183:web:590add4650c0a5b374a6d2"
     };
-    reader.readAsDataURL(e.target.files[0]);
-};
 
-// Add text
-function addText() {
-    const textVal = document.getElementById('textInput').value;
-    if (!textVal) return;
-    const text = new fabric.Textbox(textVal, {
-        fill: document.getElementById('textColor').value,
-        fontSize: parseInt(document.getElementById('textSize').value),
-        fontFamily: document.getElementById('textFont').value,
-        left: 100,
-        top: 100
-    });
-    canvas.add(text).setActiveObject(text);
-}
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-// Add shapes
-function addShape() {
-    const type = document.getElementById('shapeSelect').value;
-    let shape;
-    if (type === 'rect') {
-        shape = new fabric.Rect({ width: 100, height: 60, fill: 'red', left: 150, top: 150 });
-    } else if (type === 'circle') {
-        shape = new fabric.Circle({ radius: 50, fill: 'green', left: 150, top: 150 });
-    } else if (type === 'triangle') {
-        shape = new fabric.Triangle({ width: 100, height: 100, fill: 'blue', left: 150, top: 150 });
+    let canvas;
+    let currentProjectId = null;
+    let currentUser = null;
+
+    function setupAuthUI() {
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            const authContainer = document.getElementById('auth-container');
+            const projectsPage = document.querySelector('.projects-page');
+            const photoMakerApp = document.querySelector('.photo-maker-app');
+            
+            if (user) {
+                authContainer.style.display = 'none';
+                handleUrlParams();
+            } else {
+                authContainer.style.display = 'block';
+                projectsPage.style.display = 'none';
+                photoMakerApp.style.display = 'none';
+                if (canvas) {
+                    canvas.dispose();
+                    canvas = null;
+                }
+            }
+        });
     }
-    if (shape) canvas.add(shape).setActiveObject(shape);
-}
 
-// Add stickers
-function addSticker() {
-    const url = document.getElementById('stickerSelect').value;
-    if (!url) return;
-    fabric.Image.fromURL(url, function(img) {
-        img.scaleToWidth(100);
-        canvas.add(img).centerObject(img).setActiveObject(img);
-    });
-}
-
-// Filters
-function applyFilter() {
-    const filter = document.getElementById('filterSelect').value;
-    const obj = canvas.getActiveObject();
-    if (!obj || obj.type !== 'image') return alert('Select an image to apply filter.');
-
-    switch(filter) {
-        case 'grayscale':
-            obj.filters.push(new fabric.Image.filters.Grayscale());
-            break;
-        case 'sepia':
-            obj.filters.push(new fabric.Image.filters.Sepia());
-            break;
-        case 'invert':
-            obj.filters.push(new fabric.Image.filters.Invert());
-            break;
-        case 'brightness':
-            obj.filters.push(new fabric.Image.filters.Brightness({ brightness: 0.2 }));
-            break;
+    async function handleUrlParams() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const projectId = urlParams.get('projectId');
+        if (projectId) {
+            currentProjectId = projectId;
+            await loadProject(projectId);
+            showPhotoMaker();
+        } else {
+            showProjectsPage();
+        }
     }
-    obj.applyFilters();
-    canvas.renderAll();
-}
 
-// Layer management
-function bringForward() {
-    const obj = canvas.getActiveObject();
-    if (obj) canvas.bringForward(obj);
-}
+    window.showProjectsPage = function() {
+        document.querySelector('.projects-page').style.display = 'block';
+        document.querySelector('.photo-maker-app').style.display = 'none';
+        fetchUserProjects();
+    }
+    
+    function showPhotoMaker() {
+        document.querySelector('.projects-page').style.display = 'none';
+        document.querySelector('.photo-maker-app').style.display = 'block';
+        if (!canvas) {
+            canvas = new fabric.Canvas('canvas', { backgroundColor: 'transparent', isDrawingMode: false });
+            initializeCanvasFunctions();
+        }
+    }
 
-function sendBackward() {
-    const obj = canvas.getActiveObject();
-    if (obj) canvas.sendBackwards(obj);
-}
+    async function fetchUserProjects() {
+        if (!currentUser) return;
+        const projectsList = document.getElementById('projects-list');
+        projectsList.innerHTML = '';
+        const q = query(collection(db, "projects"), where("ownerId", "==", currentUser.uid));
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach((doc) => {
+            const project = doc.data();
+            const projectCard = document.createElement('div');
+            projectCard.className = 'project-card';
+            projectCard.innerHTML = `
+                <a href="/PhotoMaker/?projectId=${doc.id}">
+                    <h3>${project.name}</h3>
+                </a>
+                <button onclick="deleteProject('${doc.id}')">🗑️</button>
+            `;
+            projectsList.appendChild(projectCard);
+        });
+    }
 
-// Save PNG
-function savePNG() {
-    const link = document.createElement('a');
-    link.href = canvas.toDataURL({ format: 'png', quality: 1.0 });
-    link.download = 'photo.png';
-    link.click();
-}
+    window.createNewProject = async function() {
+        if (!currentUser) return;
+        const newProjectRef = await addDoc(collection(db, "projects"), {
+            name: "New Project",
+            ownerId: currentUser.uid,
+            data: null
+        });
+        window.location.href = `/PhotoMaker/?projectId=${newProjectRef.id}`;
+    }
 
-// Initialize state
-saveState();
+    window.deleteProject = async function(projectId) {
+        if (confirm("Are you sure you want to delete this project?")) {
+            await deleteDoc(doc(db, "projects", projectId));
+            fetchUserProjects();
+        }
+    }
+
+    window.saveProject = async function() {
+        if (!currentUser || !currentProjectId) return alert("Please create or open a project first.");
+        const projectName = prompt("Enter project name:", "New Project");
+        if (!projectName) return;
+        
+        const projectRef = doc(db, "projects", currentProjectId);
+        await setDoc(projectRef, {
+            name: projectName,
+            ownerId: currentUser.uid,
+            data: JSON.stringify(canvas)
+        });
+        alert("Project saved successfully!");
+    }
+
+    async function loadProject(projectId) {
+        if (!currentUser) return;
+        const docRef = doc(db, "projects", projectId);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists() && docSnap.data().ownerId === currentUser.uid) {
+            const projectData = docSnap.data().data;
+            if (projectData) {
+                if (!canvas) {
+                    canvas = new fabric.Canvas('canvas', { backgroundColor: 'transparent', isDrawingMode: false });
+                    initializeCanvasFunctions();
+                }
+                canvas.loadFromJSON(projectData, () => canvas.renderAll());
+            } else {
+                if (!canvas) {
+                     canvas = new fabric.Canvas('canvas', { backgroundColor: 'transparent', isDrawingMode: false });
+                     initializeCanvasFunctions();
+                }
+                canvas.clear(); // Clear canvas if project is new
+            }
+        } else {
+            alert("Project not found or you don't have permission to view it.");
+            window.location.href = "/PhotoMaker/";
+        }
+    }
+
+    window.handleLogin = async function() {
+        const email = document.getElementById('auth-email').value;
+        const password = document.getElementById('auth-password').value;
+        const messageDiv = document.getElementById('auth-message');
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+        } catch (error) {
+            messageDiv.textContent = `Login failed: ${error.message}`;
+        }
+    }
+
+    window.handleSignup = async function() {
+        const email = document.getElementById('auth-email').value;
+        const password = document.getElementById('auth-password').value;
+        const messageDiv = document.getElementById('auth-message');
+        try {
+            await createUserWithEmailAndPassword(auth, email, password);
+        } catch (error) {
+            messageDiv.textContent = `Sign Up failed: ${error.message}`;
+        }
+    }
+
+    window.handleLogout = async function() {
+        await signOut(auth);
+    }
+
+    document.addEventListener('DOMContentLoaded', setupAuthUI);
+
+    function initializeCanvasFunctions() {
+        let state = [];
+        let currentStateIndex = -1;
+
+        function saveState() {
+            if (currentStateIndex < state.length - 1) {
+                state = state.slice(0, currentStateIndex + 1);
+            }
+            state.push(JSON.stringify(canvas));
+            currentStateIndex++;
+        }
+
+        window.undo = function() {
+            if (currentStateIndex > 0) {
+                currentStateIndex--;
+                canvas.loadFromJSON(state[currentStateIndex], () => canvas.renderAll());
+            }
+        };
+
+        window.redo = function() {
+            if (currentStateIndex < state.length - 1) {
+                currentStateIndex++;
+                canvas.loadFromJSON(state[currentStateIndex], () => canvas.renderAll());
+            }
+        };
+
+        canvas.on('object:added', saveState);
+        canvas.on('object:modified', saveState);
+        canvas.on('object:removed', saveState);
+        
+        document.getElementById('brushColor').oninput = e => canvas.freeDrawingBrush.color = e.target.value;
+        document.getElementById('brushSize').oninput = e => canvas.freeDrawingBrush.width = parseInt(e.target.value, 10);
+        canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+
+        window.toggleDrawing = function() {
+            canvas.isDrawingMode = !canvas.isDrawingMode;
+        };
+
+        document.getElementById('addImage').onchange = function(e) {
+            const reader = new FileReader();
+            reader.onload = function(f) {
+                fabric.Image.fromURL(f.target.result, function(img) {
+                    img.scaleToWidth(200);
+                    canvas.add(img).centerObject(img).setActiveObject(img);
+                });
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        };
+
+        window.addText = function() {
+            const textVal = document.getElementById('textInput').value;
+            if (!textVal) return;
+            const text = new fabric.Textbox(textVal, {
+                fill: document.getElementById('textColor').value,
+                fontSize: parseInt(document.getElementById('textSize').value),
+                fontFamily: document.getElementById('textFont').value,
+                left: 100,
+                top: 100
+            });
+            canvas.add(text).setActiveObject(text);
+        };
+
+        window.addShape = function() {
+            const type = document.getElementById('shapeSelect').value;
+            let shape;
+            if (type === 'rect') {
+                shape = new fabric.Rect({ width: 100, height: 60, fill: 'red', left: 150, top: 150 });
+            } else if (type === 'circle') {
+                shape = new fabric.Circle({ radius: 50, fill: 'green', left: 150, top: 150 });
+            } else if (type === 'triangle') {
+                shape = new fabric.Triangle({ width: 100, height: 100, fill: 'blue', left: 150, top: 150 });
+            }
+            if (shape) canvas.add(shape).setActiveObject(shape);
+        };
+
+        window.addSticker = function() {
+            const url = document.getElementById('stickerSelect').value;
+            if (!url) return;
+            fabric.Image.fromURL(url, function(img) {
+                img.scaleToWidth(100);
+                canvas.add(img).centerObject(img).setActiveObject(img);
+            });
+        };
+
+        window.applyFilter = function() {
+            const filter = document.getElementById('filterSelect').value;
+            const obj = canvas.getActiveObject();
+            if (!obj || obj.type !== 'image') return alert('Select an image to apply filter.');
+
+            switch(filter) {
+                case 'grayscale':
+                    obj.filters.push(new fabric.Image.filters.Grayscale());
+                    break;
+                case 'sepia':
+                    obj.filters.push(new fabric.Image.filters.Sepia());
+                    break;
+                case 'invert':
+                    obj.filters.push(new fabric.Image.filters.Invert());
+                    break;
+                case 'brightness':
+                    obj.filters.push(new fabric.Image.filters.Brightness({ brightness: 0.2 }));
+                    break;
+            }
+            obj.applyFilters();
+            canvas.renderAll();
+        };
+
+        window.bringForward = function() {
+            const obj = canvas.getActiveObject();
+            if (obj) canvas.bringForward(obj);
+        };
+
+        window.sendBackward = function() {
+            const obj = canvas.getActiveObject();
+            if (obj) canvas.sendBackwards(obj);
+        };
+    }
 </script>
 </body>
 </html>
