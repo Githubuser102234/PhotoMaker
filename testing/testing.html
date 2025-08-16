@@ -77,10 +77,6 @@
         background: #3498db;
         right: 40px;
     }
-    .project-card .public-link-btn {
-        background: #2ecc71;
-        right: 75px;
-    }
     .project-card a {
         color: white;
         text-decoration: none;
@@ -102,6 +98,17 @@
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
+    }
+    #forgot-password-btn {
+        background: none;
+        border: none;
+        color: #66b3ff;
+        font-size: 14px;
+        cursor: pointer;
+        margin-top: 10px;
+    }
+    #forgot-password-btn:hover {
+        text-decoration: underline;
     }
 
     @media (max-width: 600px) {
@@ -128,6 +135,7 @@
     <input type="password" id="auth-password" placeholder="Password">
     <button onclick="handleLogin()">Login</button>
     <button onclick="handleSignup()">Sign Up</button>
+    <button id="forgot-password-btn" onclick="handlePasswordReset()">Forgot password?</button>
     <div id="auth-message"></div>
 </div>
 
@@ -205,7 +213,8 @@
         createUserWithEmailAndPassword, 
         signInWithEmailAndPassword, 
         onAuthStateChanged,
-        signOut
+        signOut,
+        sendPasswordResetEmail
     } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
     import { 
         getFirestore,
@@ -265,14 +274,9 @@
     async function handleUrlParams() {
         const urlParams = new URLSearchParams(window.location.search);
         const projectId = urlParams.get('projectId');
-        
         if (projectId) {
             currentProjectId = projectId;
-            const isPublic = projectId.startsWith('public-');
-            
-            // Load the project from the correct ID (without the public- prefix)
-            const actualProjectId = isPublic ? projectId.substring(7) : projectId;
-            await loadProject(actualProjectId, isPublic);
+            await loadProject(projectId);
             showPhotoMaker();
         } else {
             showProjectsPage();
@@ -304,10 +308,8 @@
             const project = doc.data();
             const projectCard = document.createElement('div');
             projectCard.className = 'project-card';
-            projectCard.id = `project-${doc.id}`;
             projectCard.innerHTML = `
                 <button class="rename-btn" onclick="renameProject('${doc.id}', '${project.name}')">✏️</button>
-                <button class="public-link-btn" onclick="createPublicLink('${doc.id}')">🔗</button>
                 <a href="/PhotoMaker/?projectId=${doc.id}">
                     <h3>${project.name}</h3>
                 </a>
@@ -316,21 +318,6 @@
             projectsList.appendChild(projectCard);
         });
     }
-
-    window.createPublicLink = async function(projectId) {
-        if (confirm("Are you sure you want to create a public link? It can not be deleted unless the main project is deleted.")) {
-            const publicId = `public-${projectId}`;
-            const publicUrl = `${window.location.origin}/PhotoMaker/?projectId=${publicId}`;
-            
-            try {
-                await navigator.clipboard.writeText(publicUrl);
-                alert("Public link copied to clipboard!");
-            } catch (err) {
-                console.error('Failed to copy text: ', err);
-                alert("Could not copy link to clipboard. Please copy it manually: " + publicUrl);
-            }
-        }
-    };
 
     window.createNewProject = async function() {
         if (!currentUser) return;
@@ -370,13 +357,12 @@
         alert("Project saved successfully!");
     }
 
-    async function loadProject(projectId, isPublic = false) {
-        if (!currentUser && !isPublic) return;
-        
+    async function loadProject(projectId) {
+        if (!currentUser) return;
         const docRef = doc(db, "projects", projectId);
         const docSnap = await getDoc(docRef);
 
-        if (docSnap.exists()) {
+        if (docSnap.exists() && docSnap.data().ownerId === currentUser.uid) {
             const projectData = docSnap.data().data;
             document.getElementById('project-name-display').textContent = docSnap.data().name;
             if (projectData) {
@@ -392,18 +378,6 @@
                 }
                 canvas.clear(); // Clear canvas if project is new
             }
-
-            // If it's a public link, disable all editing
-            if (isPublic) {
-                document.getElementById('toolbar').style.display = 'none'; // Hide the toolbar
-                canvas.forEachObject(obj => {
-                    obj.selectable = false;
-                    obj.evented = false;
-                });
-                canvas.selection = false;
-                canvas.isDrawingMode = false;
-            }
-
         } else {
             alert("Project not found or you don't have permission to view it.");
             window.location.href = "/PhotoMaker/";
@@ -429,6 +403,23 @@
             await createUserWithEmailAndPassword(auth, email, password);
         } catch (error) {
             messageDiv.textContent = `Sign Up failed: ${error.message}`;
+        }
+    }
+
+    window.handlePasswordReset = async function() {
+        const email = document.getElementById('auth-email').value;
+        const messageDiv = document.getElementById('auth-message');
+        if (!email) {
+            messageDiv.textContent = "Please enter your email to reset your password.";
+            return;
+        }
+        try {
+            await sendPasswordResetEmail(auth, email);
+            messageDiv.textContent = "Password reset email sent! Check your inbox.";
+            messageDiv.style.color = 'green';
+        } catch (error) {
+            messageDiv.textContent = `Password reset failed: ${error.message}`;
+            messageDiv.style.color = 'red';
         }
     }
 
