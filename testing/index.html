@@ -27,6 +27,29 @@
         a:hover {
             text-decoration: underline;
         }
+
+        .info-icon {
+            cursor: pointer;
+            margin-left: 5px;
+            color: #0066cc; /* Match link color */
+            font-weight: bold;
+        }
+
+        .info-menu {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            padding: 10px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            width: 200px;
+            white-space: normal;
+        }
+
+        .info-menu.show {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -35,13 +58,28 @@
 <hr>
 <pre>
 <a href="../">../</a>
-<a href="/testing/nUI">nUI</a>
-<a href="/testing/testing/">testing/</a>
-<a href="/testing/testing2">testing2</a>
-<a href="/testing/placeholder2.pdf">placeholder2.pdf</a>
-<a href="/testing/placeholder3.zip">placeholder3.zip</a>
+<a href="/testing/nUI">nUI</a><span class="info-icon">ⓘ</span><span class="info-menu">Information about the nUI page.</span>
+<a href="/testing/testing/">testing/</a><span class="info-icon">ⓘ</span><span class="info-menu">Information about the testing folder.</span>
+<a href="/testing/testing2">testing2</a><span class="info-icon">ⓘ</span><span class="info-menu">Information about the testing2 page.</span>
+<a href="/testing/placeholder2.pdf">placeholder2.pdf</a><span class="info-icon">ⓘ</span><span class="info-menu">Information about the placeholder2.pdf file.</span>
+<a href="/testing/placeholder3.zip">placeholder3.zip</a><span class="info-icon">ⓘ</span><span class="info-menu">Information about the placeholder3.zip file.</span>
 </pre>
 <hr>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const infoIcons = document.querySelectorAll('.info-icon');
+
+        infoIcons.forEach(icon => {
+            icon.addEventListener('click', (e) => {
+                const menu = e.target.nextElementSibling;
+                if (menu && menu.classList.contains('info-menu')) {
+                    menu.classList.toggle('show');
+                }
+            });
+        });
+    });
+</script>
 
 </body>
 </html>
