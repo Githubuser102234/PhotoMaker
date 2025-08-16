@@ -99,6 +99,17 @@
         flex-wrap: wrap;
         justify-content: center;
     }
+    #forgot-password-btn {
+        background: none;
+        border: none;
+        color: #66b3ff;
+        font-size: 14px;
+        cursor: pointer;
+        margin-top: 10px;
+    }
+    #forgot-password-btn:hover {
+        text-decoration: underline;
+    }
 
     @media (max-width: 600px) {
         #toolbar { flex-direction: column; align-items: center; }
@@ -124,6 +135,7 @@
     <input type="password" id="auth-password" placeholder="Password">
     <button onclick="handleLogin()">Login</button>
     <button onclick="handleSignup()">Sign Up</button>
+    <button id="forgot-password-btn" onclick="handlePasswordReset()">Forgot password?</button>
     <div id="auth-message"></div>
 </div>
 
@@ -201,7 +213,8 @@
         createUserWithEmailAndPassword, 
         signInWithEmailAndPassword, 
         onAuthStateChanged,
-        signOut
+        signOut,
+        sendPasswordResetEmail
     } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
     import { 
         getFirestore,
@@ -390,6 +403,23 @@
             await createUserWithEmailAndPassword(auth, email, password);
         } catch (error) {
             messageDiv.textContent = `Sign Up failed: ${error.message}`;
+        }
+    }
+
+    window.handlePasswordReset = async function() {
+        const email = document.getElementById('auth-email').value;
+        const messageDiv = document.getElementById('auth-message');
+        if (!email) {
+            messageDiv.textContent = "Please enter your email to reset your password.";
+            return;
+        }
+        try {
+            await sendPasswordResetEmail(auth, email);
+            messageDiv.textContent = "Password reset email sent! Check your inbox.";
+            messageDiv.style.color = 'green';
+        } catch (error) {
+            messageDiv.textContent = `Password reset failed: ${error.message}`;
+            messageDiv.style.color = 'red';
         }
     }
 
