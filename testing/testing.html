@@ -299,25 +299,25 @@
     }
 
     async function fetchUserProjects() {
-        if (!currentUser) return;
-        const projectsList = document.getElementById('projects-list');
-        projectsList.innerHTML = '';
-        const q = query(collection(db, "projects"), where("ownerId", "==", currentUser.uid));
-        const querySnapshot = await getDocs(q);
-        querySnapshot.forEach((doc) => {
-            const project = doc.data();
-            const projectCard = document.createElement('div');
-            projectCard.className = 'project-card';
-            projectCard.innerHTML = `
-                <button class="rename-btn" onclick="renameProject('${doc.id}', '${project.name}')">✏️</button>
-                <a href="/PhotoMaker/?projectId=${doc.id}">
-                    <h3>${project.name}</h3>
-                </a>
-                <button class="delete-btn" onclick="deleteProject('${doc.id}')">🗑️</button>
-            `;
-            projectsList.appendChild(projectCard);
-        });
-    }
+    if (!currentUser) return;
+    const projectsList = document.getElementById('projects-list');
+    projectsList.innerHTML = '';
+    const q = query(collection(db, "projects"), where("ownerId", "==", currentUser.uid));
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach((doc) => {
+        const project = doc.data();
+        const projectCard = document.createElement('div');
+        projectCard.className = 'project-card';
+        projectCard.innerHTML = `
+            <button class="rename-btn" onclick="renameProject('${doc.id}', '${project.name}')">✏️</button>
+            <a href="/PhotoMaker/?projectId=${doc.id}">
+                <h3>${project.name}</h3>
+            </a>
+            <button class="delete-btn" onclick="deleteProject('${doc.id}')"><img src="https://raw.githubusercontent.com/Githubuser102234/PhotoMaker/main/requiredcontent/IMG_0710.png" alt="Delete"></button>
+        `;
+        projectsList.appendChild(projectCard);
+    });
+}
 
     window.createNewProject = async function() {
         if (!currentUser) return;
