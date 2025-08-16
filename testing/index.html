@@ -50,14 +50,6 @@
         .info-menu.show {
             display: block;
         }
-
-        /* New styles for the warning message */
-        .warning-message {
-            display: none;
-            color: #d9a409;
-            font-weight: bold;
-            margin-left: 5px;
-        }
     </style>
 </head>
 <body>
@@ -68,16 +60,12 @@
 <a href="../">../</a>
 <a href="nUI">nUI</a><span class="info-icon">ⓘ</span><span class="info-menu">This page is a testing page for a new, advanced, circular UI.</span>
 <a href="testing">testing</a><span class="info-icon">ⓘ</span><span class="info-menu">This is a general, public testing page.</span>
-<a href="">[private]</a><span class="warning-icon" style="color: #d9a409; cursor: pointer;">⚠️</span><span class="warning-message">Sorry, something went wrong when loading this content</span>
 <a href="testing2">testing2</a><span class="info-icon">ⓘ</span><span class="info-menu">This is a general, extra public testing page.</span>
-<a href="">[private]</a><span class="warning-icon" style="color: #d9a409; cursor: pointer;">⚠️</span><span class="warning-message">Sorry, something went wrong when loading this content</span>
-<a href="">[private]</a><span class="warning-icon" style="color: #d9a409; cursor: pointer;">⚠️</span><span class="warning-message">Sorry, something went wrong when loading this content</span>
 <hr>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const infoIcons = document.querySelectorAll('.info-icon');
-        const privateLinks = document.querySelectorAll('a[href=""][href]');
 
         infoIcons.forEach(icon => {
             icon.addEventListener('click', (e) => {
@@ -86,19 +74,6 @@
                     menu.classList.toggle('show');
                 }
             });
-        });
-
-        // Add event listeners for the new warning icons
-        privateLinks.forEach(link => {
-            const warningIcon = link.nextElementSibling;
-            if (warningIcon && warningIcon.classList.contains('warning-icon')) {
-                warningIcon.addEventListener('click', () => {
-                    const warningMessage = warningIcon.nextElementSibling;
-                    if (warningMessage && warningMessage.classList.contains('warning-message')) {
-                        warningMessage.style.display = 'inline';
-                    }
-                });
-            }
         });
     });
 </script>
