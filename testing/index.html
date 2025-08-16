@@ -27,12 +27,14 @@
         a:hover {
             text-decoration: underline;
         }
+
         .info-icon {
             cursor: pointer;
             margin-left: 5px;
-            color: #0066cc;
+            color: #0066cc; /* Match link color */
             font-weight: bold;
         }
+
         .info-menu {
             display: none;
             position: absolute;
@@ -44,11 +46,17 @@
             width: 200px;
             white-space: normal;
         }
+
         .info-menu.show {
             display: block;
         }
-        .private-links {
-            display: none; /* Initially hide the private links */
+
+        /* New styles for the warning message */
+        .warning-message {
+            display: none;
+            color: #d9a409;
+            font-weight: bold;
+            margin-left: 5px;
         }
     </style>
 </head>
@@ -60,28 +68,17 @@
 <a href="../">../</a>
 <a href="nUI">nUI</a><span class="info-icon">ⓘ</span><span class="info-menu">This page is a testing page for a new, advanced, circular UI.</span>
 <a href="testing">testing</a><span class="info-icon">ⓘ</span><span class="info-menu">This is a general, public testing page.</span>
+<a href="">[private]</a><span class="warning-icon" style="color: #d9a409; cursor: pointer;">⚠️</span><span class="warning-message">Sorry, something went wrong when loading this content</span>
 <a href="testing2">testing2</a><span class="info-icon">ⓘ</span><span class="info-menu">This is a general, extra public testing page.</span>
-
-<div class="private-links">
-    <a href="">[private]</a>
-    <a href="">[private]</a>
-    <a href="">[private]</a>
-</div>
+<a href="">[private]</a><span class="warning-icon" style="color: #d9a409; cursor: pointer;">⚠️</span><span class="warning-message">Sorry, something went wrong when loading this content</span>
+<a href="">[private]</a><span class="warning-icon" style="color: #d9a409; cursor: pointer;">⚠️</span><span class="warning-message">Sorry, something went wrong when loading this content</span>
 <hr>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const infoIcons = document.querySelectorAll('.info-icon');
-        const privateLinks = document.querySelector('.private-links');
+        const privateLinks = document.querySelectorAll('a[href=""][href]');
 
-        // Check if the user wants to see private links
-        const showPrivate = confirm("Do you want to see the private links? Click 'OK' to show them.");
-
-        if (showPrivate) {
-            privateLinks.style.display = 'block';
-        }
-
-        // Existing script for info icons
         infoIcons.forEach(icon => {
             icon.addEventListener('click', (e) => {
                 const menu = e.target.nextElementSibling;
@@ -89,6 +86,19 @@
                     menu.classList.toggle('show');
                 }
             });
+        });
+
+        // Add event listeners for the new warning icons
+        privateLinks.forEach(link => {
+            const warningIcon = link.nextElementSibling;
+            if (warningIcon && warningIcon.classList.contains('warning-icon')) {
+                warningIcon.addEventListener('click', () => {
+                    const warningMessage = warningIcon.nextElementSibling;
+                    if (warningMessage && warningMessage.classList.contains('warning-message')) {
+                        warningMessage.style.display = 'inline';
+                    }
+                });
+            }
         });
     });
 </script>
