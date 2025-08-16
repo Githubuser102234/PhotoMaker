@@ -77,6 +77,10 @@
         background: #3498db;
         right: 40px;
     }
+    .project-card .public-link-btn {
+        background: #27ae60;
+        right: 75px;
+    }
     .project-card a {
         color: white;
         text-decoration: none;
@@ -235,6 +239,7 @@
     let canvas;
     let currentProjectId = null;
     let currentUser = null;
+    let isPublicLink = false;
 
     function setupAuthUI() {
         onAuthStateChanged(auth, (user) => {
@@ -247,12 +252,20 @@
                 authContainer.style.display = 'none';
                 handleUrlParams();
             } else {
-                authContainer.style.display = 'block';
-                projectsPage.style.display = 'none';
-                photoMakerApp.style.display = 'none';
-                if (canvas) {
-                    canvas.dispose();
-                    canvas = null;
+                // Check if the URL is a public link
+                const urlParams = new URLSearchParams(window.location.search);
+                const projectId = urlParams.get('projectId');
+                if (projectId && projectId.startsWith('public-')) {
+                    authContainer.style.display = 'none';
+                    handleUrlParams();
+                } else {
+                    authContainer.style.display = 'block';
+                    projectsPage.style.display = 'none';
+                    photoMakerApp.style.display = 'none';
+                    if (canvas) {
+                        canvas.dispose();
+                        canvas = null;
+                    }
                 }
             }
         });
@@ -263,6 +276,7 @@
         const projectId = urlParams.get('projectId');
         if (projectId) {
             currentProjectId = projectId;
+            isPublicLink = projectId.startsWith('public-');
             await loadProject(projectId);
             showPhotoMaker();
         } else {
@@ -283,6 +297,20 @@
             canvas = new fabric.Canvas('canvas', { backgroundColor: 'transparent', isDrawingMode: false });
             initializeCanvasFunctions();
         }
+        if (isPublicLink) {
+            disableEditing();
+        }
+    }
+
+    function disableEditing() {
+        canvas.selection = false;
+        canvas.forEachObject(function(o) {
+            o.selectable = false;
+            o.evented = false;
+        });
+        document.getElementById('toolbar').style.display = 'none';
+        canvas.isDrawingMode = false;
+        document.getElementById('project-name-display').textContent += " (Read-Only)";
     }
 
     async function fetchUserProjects() {
@@ -297,6 +325,7 @@
             projectCard.className = 'project-card';
             projectCard.innerHTML = `
                 <button class="rename-btn" onclick="renameProject('${doc.id}', '${project.name}')">✏️</button>
+                <button class="public-link-btn" onclick="generatePublicLink('${doc.id}', '${project.name}')">🔗</button>
                 <a href="/PhotoMaker/?projectId=${doc.id}">
                     <h3>${project.name}</h3>
                 </a>
@@ -304,6 +333,31 @@
             `;
             projectsList.appendChild(projectCard);
         });
+    }
+    
+    window.generatePublicLink = async function(projectId, projectName) {
+        if (!currentUser) return;
+        const confirmation = confirm("Are you sure you want to create a public link? It can not be deleted unless the main project is deleted.");
+        if (confirmation) {
+            const publicDocId = `public-${projectId}`;
+            const projectRef = doc(db, "projects", projectId);
+            const docSnap = await getDoc(projectRef);
+
+            if (docSnap.exists()) {
+                const projectData = docSnap.data().data;
+                const publicDocRef = doc(db, "publicProjects", publicDocId);
+                await setDoc(publicDocRef, {
+                    name: projectName,
+                    ownerId: currentUser.uid,
+                    data: projectData
+                });
+
+                const publicLink = `${window.location.origin}/PhotoMaker/?projectId=${publicDocId}`;
+                prompt("Copy the public link to share:", publicLink);
+            } else {
+                alert("Project not found.");
+            }
+        }
     }
 
     window.createNewProject = async function() {
@@ -317,8 +371,9 @@
     }
 
     window.deleteProject = async function(projectId) {
-        if (confirm("Are you sure you want to delete this project?")) {
+        if (confirm("Are you sure you want to delete this project? This will also delete its public link if one exists.")) {
             await deleteDoc(doc(db, "projects", projectId));
+            await deleteDoc(doc(db, "publicProjects", `public-${projectId}`));
             fetchUserProjects();
         }
     }
@@ -341,15 +396,39 @@
             ownerId: currentUser.uid,
             data: JSON.stringify(canvas)
         });
+        await updatePublicProject(currentProjectId, JSON.stringify(canvas));
         alert("Project saved successfully!");
+    }
+    
+    async function updatePublicProject(projectId, data) {
+        const publicDocId = `public-${projectId}`;
+        const publicDocRef = doc(db, "publicProjects", publicDocId);
+        const publicDocSnap = await getDoc(publicDocRef);
+        if (publicDocSnap.exists()) {
+            await updateDoc(publicDocRef, { data: data });
+        }
     }
 
     async function loadProject(projectId) {
-        if (!currentUser) return;
-        const docRef = doc(db, "projects", projectId);
+        let docRef;
+        let isPublic = false;
+        
+        if (projectId.startsWith('public-')) {
+            docRef = doc(db, "publicProjects", projectId);
+            isPublic = true;
+        } else {
+            docRef = doc(db, "projects", projectId);
+        }
+
         const docSnap = await getDoc(docRef);
 
-        if (docSnap.exists() && docSnap.data().ownerId === currentUser.uid) {
+        if (docSnap.exists()) {
+            if (!isPublic && docSnap.data().ownerId !== currentUser.uid) {
+                alert("Project not found or you don't have permission to view it.");
+                window.location.href = "/PhotoMaker/";
+                return;
+            }
+
             const projectData = docSnap.data().data;
             document.getElementById('project-name-display').textContent = docSnap.data().name;
             if (projectData) {
@@ -357,7 +436,12 @@
                     canvas = new fabric.Canvas('canvas', { backgroundColor: 'transparent', isDrawingMode: false });
                     initializeCanvasFunctions();
                 }
-                canvas.loadFromJSON(projectData, () => canvas.renderAll());
+                canvas.loadFromJSON(projectData, () => {
+                    canvas.renderAll();
+                    if (isPublic) {
+                        disableEditing();
+                    }
+                });
             } else {
                 if (!canvas) {
                      canvas = new fabric.Canvas('canvas', { backgroundColor: 'transparent', isDrawingMode: false });
