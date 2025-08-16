@@ -27,14 +27,12 @@
         a:hover {
             text-decoration: underline;
         }
-
         .info-icon {
             cursor: pointer;
             margin-left: 5px;
-            color: #0066cc; /* Match link color */
+            color: #0066cc;
             font-weight: bold;
         }
-
         .info-menu {
             display: none;
             position: absolute;
@@ -46,9 +44,11 @@
             width: 200px;
             white-space: normal;
         }
-
         .info-menu.show {
             display: block;
+        }
+        .private-links {
+            display: none; /* Initially hide the private links */
         }
     </style>
 </head>
@@ -60,16 +60,28 @@
 <a href="../">../</a>
 <a href="nUI">nUI</a><span class="info-icon">ⓘ</span><span class="info-menu">This page is a testing page for a new, advanced, circular UI.</span>
 <a href="testing">testing</a><span class="info-icon">ⓘ</span><span class="info-menu">This is a general, public testing page.</span>
-<a href="">[private]</a>
 <a href="testing2">testing2</a><span class="info-icon">ⓘ</span><span class="info-menu">This is a general, extra public testing page.</span>
-<a href="">[private]</a>
-<a href="">[private]</a>
+
+<div class="private-links">
+    <a href="">[private]</a>
+    <a href="">[private]</a>
+    <a href="">[private]</a>
+</div>
 <hr>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const infoIcons = document.querySelectorAll('.info-icon');
+        const privateLinks = document.querySelector('.private-links');
 
+        // Check if the user wants to see private links
+        const showPrivate = confirm("Do you want to see the private links? Click 'OK' to show them.");
+
+        if (showPrivate) {
+            privateLinks.style.display = 'block';
+        }
+
+        // Existing script for info icons
         infoIcons.forEach(icon => {
             icon.addEventListener('click', (e) => {
                 const menu = e.target.nextElementSibling;
